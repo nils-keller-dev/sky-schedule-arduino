@@ -10,17 +10,10 @@ const char *ssid = WIFI_SSID;
 const char *password = WIFI_PASSWORD;
 
 typedef struct {
-    String reg_number;
-    String flag;
     float lat;
     float lng;
-    int alt;
-    int dir;
-    int speed;
-    int v_speed;
     String flight_iata;
-    String airline_iata;
-    String aircraft_icao;
+    String dep_iata;
     String status;
 } FlightData;
 
@@ -74,7 +67,6 @@ void loop() {
 
 double printFlightDataInfo(int dataIndex) {
     FlightData data = flights[dataIndex];
-    Serial.println(data.reg_number);
     double distance =
         calculateDistance(ARRIVAL_LAT, ARRIVAL_LNG, data.lat, data.lng);
     return distance;
@@ -116,17 +108,10 @@ void getFlightData() {
 
     int i = 0;
     for (JsonObject flightObj : flightsArray) {
-        flights[i] = {flightObj["reg_number"].as<String>(),
-                      flightObj["flag"].as<String>(),
-                      flightObj["lat"].as<float>(),
+        flights[i] = {flightObj["lat"].as<float>(),
                       flightObj["lng"].as<float>(),
-                      flightObj["alt"].as<int>(),
-                      flightObj["dir"].as<int>(),
-                      flightObj["speed"].as<int>(),
-                      flightObj["v_speed"].as<int>(),
                       flightObj["flight_iata"].as<String>(),
-                      flightObj["airline_iata"].as<String>(),
-                      flightObj["aircraft_icao"].as<String>(),
+                      flightObj["dep_iata"].as<String>(),
                       flightObj["status"].as<String>()};
 
         i++;
