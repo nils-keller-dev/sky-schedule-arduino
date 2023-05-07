@@ -67,20 +67,19 @@ void loop() {
 
 double printFlightDataInfo(int dataIndex) {
     FlightData data = flights[dataIndex];
-    double distance =
-        calculateDistance(ARRIVAL_LAT, ARRIVAL_LNG, data.lat, data.lng);
+    double distance = calculateDistance(data.lat, data.lng);
     return distance;
 }
 
 double toRadians(double degrees) { return degrees * (PI / 180.0); }
 
-double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-    double dLat = toRadians(lat2 - lat1);
-    double dLon = toRadians(lon2 - lon1);
+double calculateDistance(double lat, double lon) {
+    double dLat = toRadians(lat - ARRIVAL_LAT);
+    double dLon = toRadians(lon - ARRIVAL_LNG);
 
     double a = sin(dLat / 2.0) * sin(dLat / 2.0) +
-               cos(toRadians(lat1)) * cos(toRadians(lat2)) * sin(dLon / 2.0) *
-                   sin(dLon / 2.0);
+               cos(toRadians(ARRIVAL_LAT)) * cos(toRadians(lat)) *
+                   sin(dLon / 2.0) * sin(dLon / 2.0);
 
     double c = 2.0 * atan2(sqrt(a), sqrt(1 - a));
 
