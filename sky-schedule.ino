@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include "credentials.h"
+#include "service.h"
 
 #define RADIUS_EARTH 6371.0
 
@@ -49,6 +50,7 @@ int dataIndex = 0;
 ClosestFlight closestFlight = {infinity(), -1};
 
 void loop() {
+    Serial.println("------");
     if (dataIndex < numFlights) {
         if (flights[dataIndex].status == "en-route") {
             double distance = printFlightDataInfo(dataIndex);
@@ -88,19 +90,7 @@ double calculateDistance(double lat, double lon) {
 }
 
 void getFlightData() {
-    // TODO make HTTP request
-    String jsonString = "{\"response\":[]}";
-
-    DynamicJsonDocument doc(4096);
-    DeserializationError error = deserializeJson(doc, jsonString);
-
-    if (error) {
-        Serial.print("JSON parsing error: ");
-        Serial.println(error.c_str());
-        return;
-    }
-
-    JsonArray flightsArray = doc["response"];
+    JsonArray flightsArray = getFlights();
 
     numFlights = flightsArray.size();
     flights = new FlightData[numFlights];
