@@ -1,30 +1,29 @@
 #include <ArduinoJson.h>
+#include <HTTPClient.h>
+#include <LiquidCrystal.h>
 #include <WiFi.h>
-#include <math.h>
 
 #include "credentials.h"
-#include "service.h"
 
-#define RADIUS_EARTH 6371.0
+#define BACKLIGHT 25
+#define BUTTON 26
 
 const char *ssid = WIFI_SSID;
 const char *password = WIFI_PASSWORD;
 
-typedef struct {
-    float lat;
-    float lng;
-    String flight_iata;
-    String dep_iata;
-    String status;
-} FlightData;
+const int rs = 19, en = 23, d4 = 18, d5 = 17, d6 = 16, d7 = 15;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+HTTPClient http;
 
-typedef struct {
-    double distance;
-    int index;
-} ClosestFlight;
+String topText = "";
+String bottomText = "";
+String topScrollingText;
+String bottomScrollingText;
+int topScrollIndex = 0;
+int bottomScrollIndex = 0;
 
-FlightData *flights;
-int numFlights = 0;
+unsigned long lastRequestTime = 0;
+const unsigned long requestInterval = 10000;  // 10 seconds
 
 void setup() {
     Serial.begin(115200);
@@ -40,69 +39,114 @@ void setup() {
     Serial.println("");
     Serial.println("WiFi connected");
 
-    getFlightData();
+    String jsonResponse = getClosestPlane();
+    parseJsonResponse(jsonResponse);
 
-    delay(2000);
-    Serial.println(WiFi.localIP());
+    pinMode(BACKLIGHT, OUTPUT);
+    pinMode(BUTTON, INPUT_PULLUP);
+    digitalWrite(BACKLIGHT, HIGH);
+    lcd.begin(16, 2);
+    lcd.clear();
+
+    updateDisplay();
 }
-
-int dataIndex = 0;
-ClosestFlight closestFlight = {infinity(), -1};
 
 void loop() {
-    Serial.println("------");
-    if (dataIndex < numFlights) {
-        if (flights[dataIndex].status == "en-route") {
-            double distance = printFlightDataInfo(dataIndex);
-            Serial.println(distance);
-            if (distance < closestFlight.distance) {
-                closestFlight = {distance, dataIndex};
-            }
-        }
-        dataIndex++;
+    if (digitalRead(BUTTON) == LOW) {
+        digitalWrite(BACKLIGHT, HIGH);
+        delay(2000);
+        digitalWrite(BACKLIGHT, LOW);
     }
-    Serial.println("Closest:");
-    Serial.println(closestFlight.distance);
-    Serial.println(closestFlight.index);
-    delay(1000);
+
+    if (millis() - lastRequestTime >= requestInterval) {
+        String jsonResponse = getClosestPlane();
+        parseJsonResponse(jsonResponse);
+        updateDisplay();
+        lastRequestTime = millis();
+    }
+
+    if (topText.length() >= 16) {
+        lcd.setCursor(0, 0);
+        lcd.print(
+            topScrollingText.substring(topScrollIndex, topScrollIndex + 16));
+        topScrollIndex++;
+        if (topScrollIndex >= topText.length() + 3) {
+            topScrollIndex = 0;
+        }
+        delay(700);
+    }
+
+    if (bottomText.length() >= 16) {
+        lcd.setCursor(0, 1);
+        lcd.print(bottomScrollingText.substring(bottomScrollIndex,
+                                                bottomScrollIndex + 16));
+        bottomScrollIndex++;
+        if (bottomScrollIndex >= bottomText.length() + 3) {
+            bottomScrollIndex = 0;
+        }
+        delay(700);
+    }
 }
 
-double printFlightDataInfo(int dataIndex) {
-    FlightData data = flights[dataIndex];
-    double distance = calculateDistance(data.lat, data.lng);
-    return distance;
+String getClosestPlane() {
+    http.begin(SERVER_URL);
+    int httpResponseCode = http.GET();
+
+    if (httpResponseCode == 200) {
+        String payload = http.getString();
+        return payload;
+    } else {
+        return "{}";
+    }
 }
 
-double toRadians(double degrees) { return degrees * (PI / 180.0); }
-
-double calculateDistance(double lat, double lon) {
-    double dLat = toRadians(lat - ARRIVAL_LAT);
-    double dLon = toRadians(lon - ARRIVAL_LNG);
-
-    double a = sin(dLat / 2.0) * sin(dLat / 2.0) +
-               cos(toRadians(ARRIVAL_LAT)) * cos(toRadians(lat)) *
-                   sin(dLon / 2.0) * sin(dLon / 2.0);
-
-    double c = 2.0 * atan2(sqrt(a), sqrt(1 - a));
-
-    double distance = RADIUS_EARTH * c;
-    return distance;
+String centerText(String text, int width) {
+    int padding = (width - text.length()) / 2;
+    String spaces = "";
+    for (int i = 0; i < padding; i++) {
+        spaces += " ";
+    }
+    return spaces + text;
 }
 
-void getFlightData() {
-    JsonArray flightsArray = getFlights();
+void parseJsonResponse(String jsonResponse) {
+    const size_t capacity = JSON_OBJECT_SIZE(2) + 60;
+    DynamicJsonDocument doc(capacity);
 
-    numFlights = flightsArray.size();
-    flights = new FlightData[numFlights];
+    DeserializationError error = deserializeJson(doc, jsonResponse);
 
-    int i = 0;
-    for (JsonObject flightObj : flightsArray) {
-        flights[i] = {flightObj["lat"].as<float>(),
-                      flightObj["lng"].as<float>(),
-                      flightObj["flight_iata"].as<String>(),
-                      flightObj["dep_iata"].as<String>(),
-                      flightObj["status"].as<String>()};
+    if (error || doc.isNull() || doc.size() == 0) {
+        digitalWrite(BACKLIGHT, LOW);
+        return;
+    }
 
-        i++;
+    digitalWrite(BACKLIGHT, HIGH);
+
+    const char *city = doc["city"] | "";
+    const char *country = doc["country"] | "";
+
+    topText = String(country);
+    bottomText = String(city);
+
+    if (topText.length() >= 16) {
+        topScrollingText = topText + "   " + topText;
+    }
+
+    if (bottomText.length() >= 16) {
+        bottomScrollingText = bottomText + "   " + bottomText;
+    }
+}
+
+void updateDisplay() {
+    lcd.clear();
+
+    if (topText.length() < 16) {
+        lcd.setCursor(0, 0);
+        lcd.print(centerText(topText, 16));
+    }
+
+    if (bottomText.length() < 16) {
+        lcd.setCursor(0, 1);
+        lcd.print(centerText(bottomText, 16));
     }
 }
