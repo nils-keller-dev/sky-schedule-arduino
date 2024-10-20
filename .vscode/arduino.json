@@ -1,0 +1,8 @@
+{
+    "board": "esp32:esp32:esp32s2",
+    "sketch": "sky-schedule-arduino.ino",
+    "port": "/dev/tty.usbserial-0001",
+    "programmer": "esptool",
+    "output": "build",
+    "configuration": "JTAGAdapter=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,PSRAM=disabled,PartitionScheme=default,CPUFreq=240,FlashMode=qio,FlashFreq=80,FlashSize=4M,UploadSpeed=921600,DebugLevel=none,EraseFlash=none,ZigbeeMode=default"
+}
