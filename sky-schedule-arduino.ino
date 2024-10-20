@@ -1,18 +1,16 @@
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
-#include <LiquidCrystal.h>
+#include <LiquidCrystal_I2C.h>
 #include <WiFi.h>
 
 #include "credentials.h"
 
-#define BACKLIGHT 25
 #define BUTTON 26
 
 const char *ssid = WIFI_SSID;
 const char *password = WIFI_PASSWORD;
 
-const int rs = 19, en = 23, d4 = 18, d5 = 17, d6 = 16, d7 = 15;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 HTTPClient http;
 
 String topText = "";
@@ -42,20 +40,19 @@ void setup() {
     String jsonResponse = getClosestPlane();
     parseJsonResponse(jsonResponse);
 
-    pinMode(BACKLIGHT, OUTPUT);
     pinMode(BUTTON, INPUT_PULLUP);
-    digitalWrite(BACKLIGHT, HIGH);
-    lcd.begin(16, 2);
+    lcd.init();
     lcd.clear();
+    lcd.backlight();
 
     updateDisplay();
 }
 
 void loop() {
     if (digitalRead(BUTTON) == LOW) {
-        digitalWrite(BACKLIGHT, HIGH);
+        lcd.backlight();
         delay(2000);
-        digitalWrite(BACKLIGHT, LOW);
+        lcd.noBacklight();
     }
 
     if (millis() - lastRequestTime >= requestInterval) {
@@ -116,11 +113,11 @@ void parseJsonResponse(String jsonResponse) {
     DeserializationError error = deserializeJson(doc, jsonResponse);
 
     if (error || doc.isNull() || doc.size() == 0) {
-        digitalWrite(BACKLIGHT, LOW);
+        lcd.noBacklight();
         return;
     }
 
-    digitalWrite(BACKLIGHT, HIGH);
+    lcd.backlight();
 
     const char *city = doc["city"] | "";
     const char *country = doc["country"] | "";
