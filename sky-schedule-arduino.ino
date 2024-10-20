@@ -48,6 +48,7 @@ void setup() {
 void loop() {
     if (millis() - lastRequestTime >= requestInterval) {
         String jsonResponse = getClosestPlane();
+        Serial.println(jsonResponse);
         parseJsonResponse(jsonResponse);
         updateDisplay();
         lastRequestTime = millis();
@@ -110,18 +111,21 @@ void parseJsonResponse(String jsonResponse) {
 
     lcd.backlight();
 
-    const char *city = doc["destination"]["city"] | "";
-    const char *country = doc["destination"]["country"] | "";
+    const char *destinationCountry = doc["destination"]["country"] | "";
+    const char *destinationCity = doc["destination"]["city"] | "";
 
-    topText = String(country);
-    bottomText = String(city);
+    const char *originCountry = doc["origin"]["country"] | "";
+    const char *originCity = doc["origin"]["city"] | "";
+
+    topText = String(originCountry) + " - " + String(originCity);
+    bottomText = String(destinationCountry) + " - " + String(destinationCity);
 
     if (topText.length() >= 16) {
-        topScrollingText = topText + "   " + topText;
+        topScrollingText = topText + "    " + topText;
     }
 
     if (bottomText.length() >= 16) {
-        bottomScrollingText = bottomText + "   " + bottomText;
+        bottomScrollingText = bottomText + "    " + bottomText;
     }
 }
 
