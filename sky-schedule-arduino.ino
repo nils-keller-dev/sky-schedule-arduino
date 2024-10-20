@@ -18,6 +18,8 @@ String bottomScrollingText;
 int topScrollIndex = 0;
 int bottomScrollIndex = 0;
 
+unsigned long lastScreenUpdateTime = 0;
+
 unsigned long lastRequestTime = 0;
 const unsigned long requestInterval = 10000;  // 10 seconds
 
@@ -39,8 +41,8 @@ void setup() {
     parseJsonResponse(jsonResponse);
 
     lcd.init();
-    lcd.clear();
     lcd.backlight();
+    lcd.clear();
 
     updateDisplay();
 }
@@ -50,30 +52,11 @@ void loop() {
         String jsonResponse = getClosestPlane();
         Serial.println(jsonResponse);
         parseJsonResponse(jsonResponse);
-        updateDisplay();
         lastRequestTime = millis();
     }
 
-    if (topText.length() >= 16) {
-        lcd.setCursor(0, 0);
-        lcd.print(
-            topScrollingText.substring(topScrollIndex, topScrollIndex + 16));
-        topScrollIndex++;
-        if (topScrollIndex >= topText.length() + 3) {
-            topScrollIndex = 0;
-        }
-        delay(700);
-    }
-
-    if (bottomText.length() >= 16) {
-        lcd.setCursor(0, 1);
-        lcd.print(bottomScrollingText.substring(bottomScrollIndex,
-                                                bottomScrollIndex + 16));
-        bottomScrollIndex++;
-        if (bottomScrollIndex >= bottomText.length() + 3) {
-            bottomScrollIndex = 0;
-        }
-        delay(700);
+    if (millis() - lastScreenUpdateTime >= 700) {
+        updateDisplay();
     }
 }
 
@@ -111,11 +94,11 @@ void parseJsonResponse(String jsonResponse) {
 
     lcd.backlight();
 
-    const char *destinationCountry = doc["destination"]["country"] | "";
-    const char *destinationCity = doc["destination"]["city"] | "";
-
     const char *originCountry = doc["origin"]["country"] | "";
     const char *originCity = doc["origin"]["city"] | "";
+
+    const char *destinationCountry = doc["destination"]["country"] | "";
+    const char *destinationCity = doc["destination"]["city"] | "";
 
     topText = String(originCountry) + " - " + String(originCity);
     bottomText = String(destinationCountry) + " - " + String(destinationCity);
@@ -130,15 +113,31 @@ void parseJsonResponse(String jsonResponse) {
 }
 
 void updateDisplay() {
-    lcd.clear();
+    lastScreenUpdateTime = millis();
 
     if (topText.length() < 16) {
         lcd.setCursor(0, 0);
         lcd.print(centerText(topText, 16));
+    } else {
+        lcd.setCursor(0, 0);
+        lcd.print(
+            topScrollingText.substring(topScrollIndex, topScrollIndex + 16));
+        topScrollIndex++;
+        if (topScrollIndex >= topText.length() + 3) {
+            topScrollIndex = 0;
+        }
     }
 
     if (bottomText.length() < 16) {
         lcd.setCursor(0, 1);
         lcd.print(centerText(bottomText, 16));
+    } else {
+        lcd.setCursor(0, 1);
+        lcd.print(bottomScrollingText.substring(bottomScrollIndex,
+                                                bottomScrollIndex + 16));
+        bottomScrollIndex++;
+        if (bottomScrollIndex >= bottomText.length() + 3) {
+            bottomScrollIndex = 0;
+        }
     }
 }
