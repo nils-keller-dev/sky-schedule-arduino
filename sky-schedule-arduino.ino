@@ -5,8 +5,6 @@
 
 #include "credentials.h"
 
-#define BUTTON 26
-
 const char *ssid = WIFI_SSID;
 const char *password = WIFI_PASSWORD;
 
@@ -40,7 +38,6 @@ void setup() {
     String jsonResponse = getClosestPlane();
     parseJsonResponse(jsonResponse);
 
-    pinMode(BUTTON, INPUT_PULLUP);
     lcd.init();
     lcd.clear();
     lcd.backlight();
@@ -49,12 +46,6 @@ void setup() {
 }
 
 void loop() {
-    if (digitalRead(BUTTON) == LOW) {
-        lcd.backlight();
-        delay(2000);
-        lcd.noBacklight();
-    }
-
     if (millis() - lastRequestTime >= requestInterval) {
         String jsonResponse = getClosestPlane();
         parseJsonResponse(jsonResponse);
