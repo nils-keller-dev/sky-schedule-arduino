@@ -2,3 +2,4 @@
 version=1
 firmware='build/sky-schedule-arduino.ino.merged.bin'
 elf='build/sky-schedule-arduino.ino.elf'
+rfc2217ServerPort = 4000
