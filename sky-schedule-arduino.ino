@@ -119,8 +119,8 @@ void parseJsonResponse(String jsonResponse) {
 
     lcd.backlight();
 
-    const char *city = doc["city"] | "";
-    const char *country = doc["country"] | "";
+    const char *city = doc["destination"]["city"] | "";
+    const char *country = doc["destination"]["country"] | "";
 
     topText = String(country);
     bottomText = String(city);
