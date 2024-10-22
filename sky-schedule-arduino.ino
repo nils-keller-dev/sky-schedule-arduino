@@ -123,7 +123,7 @@ void updateDisplay() {
         lcd.print(
             topScrollingText.substring(topScrollIndex, topScrollIndex + 16));
         topScrollIndex++;
-        if (topScrollIndex >= topText.length() + 3) {
+        if (topScrollIndex >= topText.length() + 4) {
             topScrollIndex = 0;
         }
     }
@@ -136,7 +136,7 @@ void updateDisplay() {
         lcd.print(bottomScrollingText.substring(bottomScrollIndex,
                                                 bottomScrollIndex + 16));
         bottomScrollIndex++;
-        if (bottomScrollIndex >= bottomText.length() + 3) {
+        if (bottomScrollIndex >= bottomText.length() + 4) {
             bottomScrollIndex = 0;
         }
     }
