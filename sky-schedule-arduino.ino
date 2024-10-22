@@ -3,6 +3,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <WiFi.h>
 
+#include "characters.h"
 #include "credentials.h"
 
 const char *ssid = WIFI_SSID;
