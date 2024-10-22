@@ -11,17 +11,29 @@ const char *password = WIFI_PASSWORD;
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 HTTPClient http;
 
+String pathTop = "";
+String pathBottom = "";
+String infoTop = "";
+String infoBottom = "";
+
 String topText = "";
 String bottomText = "";
 String topScrollingText;
 String bottomScrollingText;
 int topScrollIndex = 0;
 int bottomScrollIndex = 0;
+bool isShowingPath = true;
 
+String currentFlightId = "";
+
+const unsigned long requestInterval = 10000;  // 10 seconds
+unsigned long lastRequestTime = 0;
+
+const unsigned long scrollDelay = 700;
 unsigned long lastScreenUpdateTime = 0;
 
-unsigned long lastRequestTime = 0;
-const unsigned long requestInterval = 10000;  // 10 seconds
+const unsigned long switchDelay = 20000;  // 20 seconds
+unsigned long lastSwitchTime = 0;
 
 void setup() {
     Serial.begin(115200);
@@ -39,6 +51,7 @@ void setup() {
 
     String jsonResponse = getClosestPlane();
     parseJsonResponse(jsonResponse);
+    setTexts(pathTop, pathBottom);
 
     lcd.init();
     lcd.backlight();
@@ -47,16 +60,51 @@ void setup() {
     updateDisplay();
 }
 
+void setTexts(String top, String bottom) {
+    topText = top;
+    bottomText = bottom;
+    topScrollingText = top + "    " + top;
+    bottomScrollingText = bottom + "    " + bottom;
+}
+
 void loop() {
     if (millis() - lastRequestTime >= requestInterval) {
         String jsonResponse = getClosestPlane();
         Serial.println(jsonResponse);
-        parseJsonResponse(jsonResponse);
+        bool isNewFlight = parseJsonResponse(jsonResponse);
+
+        if (isNewFlight) {
+            topScrollIndex = 0;
+            bottomScrollIndex = 0;
+            lcd.clear();
+            setTexts(pathTop, pathBottom);
+            isShowingPath = true;
+            lastSwitchTime = millis();
+
+            // force screen update
+            lastScreenUpdateTime = 0;
+        }
+
         lastRequestTime = millis();
     }
 
-    if (millis() - lastScreenUpdateTime >= 700) {
+    if (millis() - lastScreenUpdateTime >= scrollDelay) {
         updateDisplay();
+        lastScreenUpdateTime = millis();
+    }
+
+    if (millis() - lastSwitchTime >= switchDelay) {
+        topScrollIndex = 0;
+        bottomScrollIndex = 0;
+        lcd.clear();
+        if (isShowingPath) {
+            setTexts(infoTop, infoBottom);
+        } else {
+            setTexts(pathTop, pathBottom);
+        }
+
+        isShowingPath = !isShowingPath;
+        lastSwitchTime = millis();
     }
 }
 
@@ -81,7 +129,7 @@ String centerText(String text, int width) {
     return spaces + text;
 }
 
-void parseJsonResponse(String jsonResponse) {
+bool parseJsonResponse(String jsonResponse) {
     const size_t capacity = JSON_OBJECT_SIZE(2) + 60;
     DynamicJsonDocument doc(capacity);
 
@@ -89,33 +137,39 @@ void parseJsonResponse(String jsonResponse) {
 
     if (error || doc.isNull() || doc.size() == 0) {
         lcd.noBacklight();
-        return;
+        return false;
     }
 
     lcd.backlight();
 
     const char *originCountry = doc["origin"]["country"] | "";
     const char *originCity = doc["origin"]["city"] | "";
+    pathTop = String(originCountry) + " - " + String(originCity);
 
     const char *destinationCountry = doc["destination"]["country"] | "";
     const char *destinationCity = doc["destination"]["city"] | "";
+    pathBottom = String(destinationCountry) + " - " + String(destinationCity);
 
-    topText = String(originCountry) + " - " + String(originCity);
-    bottomText = String(destinationCountry) + " - " + String(destinationCity);
+    const char *aircraft = doc["aircraft"] | "";
+    const char *airline = doc["airline"] | "";
+    infoTop = String(aircraft) + " - " + String(airline);
 
-    if (topText.length() >= 16) {
-        topScrollingText = topText + "    " + topText;
+    const char *number = doc["number"] | "";
+    const long altitude = doc["altitude"] | 0;
+    infoBottom = String(number) + " - " + altitude + "m";
+
+    const char *id = doc["id"] | "";
+
+    if (currentFlightId != id) {
+        currentFlightId = id;
+        return true;
     }
 
-    if (bottomText.length() >= 16) {
-        bottomScrollingText = bottomText + "    " + bottomText;
-    }
+    return false;
 }
 
 void updateDisplay() {
-    lastScreenUpdateTime = millis();
-
-    if (topText.length() < 16) {
+    if (topText.length() <= 16) {
         lcd.setCursor(0, 0);
         lcd.print(centerText(topText, 16));
     } else {
@@ -128,7 +182,7 @@ void updateDisplay() {
         }
     }
 
-    if (bottomText.length() < 16) {
+    if (bottomText.length() <= 16) {
         lcd.setCursor(0, 1);
         lcd.print(centerText(bottomText, 16));
     } else {
