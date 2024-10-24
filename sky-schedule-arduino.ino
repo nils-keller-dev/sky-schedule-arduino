@@ -204,7 +204,6 @@ void updateDisplay() {
 void print(String text) {
     for (int i = 0; i < text.length(); i++) {
         byte charToPrint = text[i];
-        Serial.println(charToPrint);
         if (text[i] == 195) {  // First byte of UTF-8 sequence for Ä, Ö, Ü
             i++;
             if (i < text.length()) {
