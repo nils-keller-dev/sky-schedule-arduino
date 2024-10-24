@@ -58,6 +58,10 @@ void setup() {
     lcd.backlight();
     lcd.clear();
 
+    lcd.createChar(0, AE);
+    lcd.createChar(1, OE);
+    lcd.createChar(2, UE);
+
     updateDisplay();
 }
 
@@ -175,10 +179,9 @@ bool parseJsonResponse(String jsonResponse) {
 void updateDisplay() {
     lcd.setCursor(0, 0);
     if (topText.length() <= 16) {
-        lcd.print(centerText(topText, 16));
+        print(centerText(topText, 16));
     } else {
-        lcd.print(
-            topScrollingText.substring(topScrollIndex, topScrollIndex + 16));
+        print(topScrollingText.substring(topScrollIndex, topScrollIndex + 16));
         topScrollIndex++;
         if (topScrollIndex >= topText.length() + 4) {
             topScrollIndex = 0;
@@ -187,13 +190,56 @@ void updateDisplay() {
 
     lcd.setCursor(0, 1);
     if (bottomText.length() <= 16) {
-        lcd.print(centerText(bottomText, 16));
+        print(centerText(bottomText, 16));
     } else {
-        lcd.print(bottomScrollingText.substring(bottomScrollIndex,
-                                                bottomScrollIndex + 16));
+        print(bottomScrollingText.substring(bottomScrollIndex,
+                                            bottomScrollIndex + 16));
         bottomScrollIndex++;
         if (bottomScrollIndex >= bottomText.length() + 4) {
             bottomScrollIndex = 0;
+        }
+    }
+}
+
+void print(String text) {
+    for (int i = 0; i < text.length(); i++) {
+        byte charToPrint = text[i];
+        Serial.println(charToPrint);
+        if (text[i] == 195) {  // First byte of UTF-8 sequence for Ä, Ö, Ü
+            i++;
+            if (i < text.length()) {
+                switch (text[i]) {
+                    case 132:  // 'Ä'
+                        lcd.write(0);
+                        break;
+                    case 150:  // 'Ö'
+                        lcd.write(1);
+                        break;
+                    case 156:  // 'Ü'
+                        lcd.write(2);
+                        break;
+                    case 161:  // á
+                        lcd.print("a");
+                        break;
+                    case 167:  // ç
+                        lcd.print("c");
+                        break;
+                    case 169:  // é
+                        lcd.print("e");
+                        break;
+                    case 179:  // ó
+                        lcd.print("o");
+                        break;
+                    default:
+                        i--;
+                        lcd.write(195);
+                        break;
+                }
+            } else {
+                lcd.write(195);
+            }
+        } else {
+            lcd.write(text[i]);
         }
     }
 }
