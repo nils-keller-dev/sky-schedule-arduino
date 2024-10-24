@@ -26,6 +26,7 @@ int bottomScrollIndex = 0;
 bool isShowingPath = true;
 
 String currentFlightId = "";
+bool hasData = false;
 
 const unsigned long requestInterval = 10000;       // 10 seconds
 unsigned long lastRequestTime = -requestInterval;  // force first request
@@ -85,7 +86,7 @@ void loop() {
         lastRequestTime = millis();
     }
 
-    if (millis() - lastScreenUpdateTime >= scrollDelay) {
+    if (hasData && millis() - lastScreenUpdateTime >= scrollDelay) {
         updateDisplay();
         lastScreenUpdateTime = millis();
     }
@@ -137,10 +138,13 @@ bool parseJsonResponse(String jsonResponse) {
     DeserializationError error = deserializeJson(doc, jsonResponse);
 
     if (error || doc.isNull() || doc.size() == 0) {
+        hasData = false;
+        lcd.clear();
         lcd.noBacklight();
         return false;
     }
 
+    hasData = true;
     lcd.backlight();
 
     const char *originCountry = doc["origin"]["country"] | "";
