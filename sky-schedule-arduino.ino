@@ -71,7 +71,6 @@ void setTexts(String top, String bottom) {
 void loop() {
     if (millis() - lastRequestTime >= requestInterval) {
         String jsonResponse = getClosestPlane();
-        Serial.println(jsonResponse);
         bool isNewFlight = parseJsonResponse(jsonResponse);
 
         if (isNewFlight) {
@@ -115,6 +114,10 @@ String getClosestPlane() {
 
     if (httpResponseCode == 200) {
         String payload = http.getString();
+        Serial.println(payload);
+        payload.replace("ä", "\xE1");
+        payload.replace("ö", "\xEF");
+        payload.replace("ü", "\xF5");
         return payload;
     } else {
         return "{}";
@@ -170,11 +173,10 @@ bool parseJsonResponse(String jsonResponse) {
 }
 
 void updateDisplay() {
+    lcd.setCursor(0, 0);
     if (topText.length() <= 16) {
-        lcd.setCursor(0, 0);
         lcd.print(centerText(topText, 16));
     } else {
-        lcd.setCursor(0, 0);
         lcd.print(
             topScrollingText.substring(topScrollIndex, topScrollIndex + 16));
         topScrollIndex++;
@@ -183,11 +185,10 @@ void updateDisplay() {
         }
     }
 
+    lcd.setCursor(0, 1);
     if (bottomText.length() <= 16) {
-        lcd.setCursor(0, 1);
         lcd.print(centerText(bottomText, 16));
     } else {
-        lcd.setCursor(0, 1);
         lcd.print(bottomScrollingText.substring(bottomScrollIndex,
                                                 bottomScrollIndex + 16));
         bottomScrollIndex++;
