@@ -27,8 +27,8 @@ bool isShowingPath = true;
 
 String currentFlightId = "";
 
-const unsigned long requestInterval = 10000;  // 10 seconds
-unsigned long lastRequestTime = 0;
+const unsigned long requestInterval = 10000;       // 10 seconds
+unsigned long lastRequestTime = -requestInterval;  // force first request
 
 const unsigned long scrollDelay = 700;
 unsigned long lastScreenUpdateTime = 0;
@@ -50,19 +50,12 @@ void setup() {
     Serial.println("");
     Serial.println("WiFi connected");
 
-    String jsonResponse = getClosestPlane();
-    parseJsonResponse(jsonResponse);
-    setTexts(pathTop, pathBottom);
-
     lcd.init();
-    lcd.backlight();
     lcd.clear();
 
     lcd.createChar(0, AE);
     lcd.createChar(1, OE);
     lcd.createChar(2, UE);
-
-    updateDisplay();
 }
 
 void setTexts(String top, String bottom) {
