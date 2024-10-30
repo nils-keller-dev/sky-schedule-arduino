@@ -108,6 +108,8 @@ void loop() {
 
 String getClosestPlane() {
     http.begin(SERVER_URL);
+    http.addHeader("token", TOKEN);
+
     int httpResponseCode = http.GET();
 
     if (httpResponseCode == 200) {
