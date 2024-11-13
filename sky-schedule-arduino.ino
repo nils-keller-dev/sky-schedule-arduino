@@ -59,25 +59,16 @@ void setup() {
     lcd.createChar(2, UE);
 }
 
-void setTexts(String top, String bottom) {
-    topText = top;
-    bottomText = bottom;
-    topScrollingText = top + "    " + top;
-    bottomScrollingText = bottom + "    " + bottom;
-}
-
 void loop() {
     if (millis() - lastRequestTime >= requestInterval) {
         String jsonResponse = getClosestPlane();
         bool isNewFlight = parseJsonResponse(jsonResponse);
 
         if (isNewFlight) {
-            topScrollIndex = 0;
-            bottomScrollIndex = 0;
-            lcd.clear();
+            resetDisplay();
+
             setTexts(pathTop, pathBottom);
             isShowingPath = true;
-            lastSwitchTime = millis();
 
             // force screen update
             lastScreenUpdateTime = 0;
@@ -92,9 +83,8 @@ void loop() {
     }
 
     if (millis() - lastSwitchTime >= switchDelay) {
-        topScrollIndex = 0;
-        bottomScrollIndex = 0;
-        lcd.clear();
+        resetDisplay();
+
         if (isShowingPath) {
             setTexts(infoTop, infoBottom);
         } else {
@@ -102,8 +92,21 @@ void loop() {
         }
 
         isShowingPath = !isShowingPath;
-        lastSwitchTime = millis();
     }
+}
+
+void setTexts(String top, String bottom) {
+    topText = top;
+    bottomText = bottom;
+    topScrollingText = top + "    " + top;
+    bottomScrollingText = bottom + "    " + bottom;
+}
+
+void resetDisplay() {
+    topScrollIndex = 0;
+    bottomScrollIndex = 0;
+    lcd.clear();
+        lastSwitchTime = millis();
 }
 
 String getClosestPlane() {
