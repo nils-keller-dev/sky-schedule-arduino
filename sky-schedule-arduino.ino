@@ -106,7 +106,7 @@ void resetDisplay() {
     topScrollIndex = 0;
     bottomScrollIndex = 0;
     lcd.clear();
-        lastSwitchTime = millis();
+    lastSwitchTime = millis();
 }
 
 String getClosestPlane() {
@@ -121,6 +121,17 @@ String getClosestPlane() {
         payload.replace("ä", "\xE1");
         payload.replace("ö", "\xEF");
         payload.replace("ü", "\xF5");
+        payload.replace("ß", "\xE2");
+
+        payload.replace("á", "a");
+        payload.replace("ç", "c");
+        payload.replace("é", "e");
+        payload.replace("ó", "o");
+
+        payload.replace("Ä", "\x80");
+        payload.replace("Ö", "\x81");
+        payload.replace("Ü", "\x82");
+
         return payload;
     } else {
         return "{}";
@@ -205,42 +216,19 @@ void updateDisplay() {
 
 void print(String text) {
     for (int i = 0; i < text.length(); i++) {
-        byte charToPrint = text[i];
-        if (text[i] == 195) {  // First byte of UTF-8 sequence for Ä, Ö, Ü
-            i++;
-            if (i < text.length()) {
-                switch (text[i]) {
-                    case 132:  // 'Ä'
-                        lcd.write(0);
-                        break;
-                    case 150:  // 'Ö'
-                        lcd.write(1);
-                        break;
-                    case 156:  // 'Ü'
-                        lcd.write(2);
-                        break;
-                    case 161:  // á
-                        lcd.print("a");
-                        break;
-                    case 167:  // ç
-                        lcd.print("c");
-                        break;
-                    case 169:  // é
-                        lcd.print("e");
-                        break;
-                    case 179:  // ó
-                        lcd.print("o");
-                        break;
-                    default:
-                        i--;
-                        lcd.write(195);
-                        break;
-                }
-            } else {
-                lcd.write(195);
-            }
-        } else {
-            lcd.write(text[i]);
+        switch (text[i]) {
+            case '\x80':  // 'Ä'
+                lcd.write(0);
+                break;
+            case '\x81':  // 'Ö'
+                lcd.write(1);
+                break;
+            case '\x82':  // 'Ü'
+                lcd.write(2);
+                break;
+            default:
+                lcd.write(text[i]);
+                break;
         }
     }
 }
