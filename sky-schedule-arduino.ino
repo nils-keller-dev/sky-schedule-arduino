@@ -31,7 +31,7 @@ bool hasData = false;
 const unsigned long requestInterval = 10000;       // 10 seconds
 unsigned long lastRequestTime = -requestInterval;  // force first request
 
-const unsigned long scrollDelay = 700;
+const unsigned long scrollDelay = 500;
 unsigned long lastScreenUpdateTime = 0;
 
 const unsigned long switchDelay = 20000;  // 20 seconds
