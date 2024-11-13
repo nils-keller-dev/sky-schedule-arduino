@@ -28,6 +28,8 @@ bool isShowingPath = true;
 String currentFlightId = "";
 bool hasData = false;
 
+bool switchingEnabled = true;
+
 const unsigned long requestInterval = 10000;       // 10 seconds
 unsigned long lastRequestTime = -requestInterval;  // force first request
 
@@ -67,12 +69,22 @@ void loop() {
         if (isNewFlight) {
             resetDisplay();
 
-            setTexts(pathTop, pathBottom);
             isShowingPath = true;
+            switchingEnabled = true;
+
+            if (pathTop.isEmpty() && pathBottom.isEmpty()) {
+                isShowingPath = false;
+                switchingEnabled = false;
+            }
+            if (infoTop.isEmpty() && infoBottom.isEmpty()) {
+                switchingEnabled = false;
+            }
 
             // force screen update
             lastScreenUpdateTime = 0;
         }
+
+        updateTexts();
 
         lastRequestTime = millis();
     }
@@ -82,16 +94,10 @@ void loop() {
         lastScreenUpdateTime = millis();
     }
 
-    if (millis() - lastSwitchTime >= switchDelay) {
-        resetDisplay();
-
-        if (isShowingPath) {
-            setTexts(infoTop, infoBottom);
-        } else {
-            setTexts(pathTop, pathBottom);
-        }
-
+    if (switchingEnabled && millis() - lastSwitchTime >= switchDelay) {
         isShowingPath = !isShowingPath;
+        updateTexts();
+        resetDisplay();
     }
 }
 
@@ -100,6 +106,14 @@ void setTexts(String top, String bottom) {
     bottomText = bottom;
     topScrollingText = top + "    " + top;
     bottomScrollingText = bottom + "    " + bottom;
+}
+
+void updateTexts() {
+    if (isShowingPath) {
+        setTexts(pathTop, pathBottom);
+    } else {
+        setTexts(infoTop, infoBottom);
+    }
 }
 
 void resetDisplay() {
@@ -147,13 +161,21 @@ String centerText(String text, int width) {
     return spaces + text;
 }
 
+String joinStrings(const String &str1, const String &str2) {
+    if (!str1.isEmpty() && !str2.isEmpty()) {
+        return str1 + " - " + str2;
+    }
+    return str1 + str2;
+}
+
 bool parseJsonResponse(String jsonResponse) {
     const size_t capacity = JSON_OBJECT_SIZE(2) + 60;
     DynamicJsonDocument doc(capacity);
 
     DeserializationError error = deserializeJson(doc, jsonResponse);
 
-    if (error || doc.isNull() || doc.size() == 0) {
+    if (error || doc.isNull() || doc.size() == 0 ||
+        (doc.size() == 1 && doc.containsKey("id"))) {
         hasData = false;
         lcd.clear();
         lcd.noBacklight();
@@ -165,19 +187,25 @@ bool parseJsonResponse(String jsonResponse) {
 
     const char *originCountry = doc["origin"]["country"] | "";
     const char *originCity = doc["origin"]["city"] | "";
-    pathTop = String(originCountry) + " - " + String(originCity);
+    pathTop = joinStrings(originCountry, originCity);
 
     const char *destinationCountry = doc["destination"]["country"] | "";
     const char *destinationCity = doc["destination"]["city"] | "";
-    pathBottom = String(destinationCountry) + " - " + String(destinationCity);
+    pathBottom = joinStrings(destinationCountry, destinationCity);
 
     const char *aircraft = doc["aircraft"] | "";
     const char *airline = doc["airline"] | "";
-    infoTop = String(aircraft) + " - " + String(airline);
+    infoTop = joinStrings(aircraft, airline);
 
     const char *number = doc["number"] | "";
     const long altitude = doc["altitude"] | 0;
-    infoBottom = String(number) + " - " + altitude + "m";
+    String altitudeStr;
+    if (altitude > 0) {
+        altitudeStr = String(altitude) + "m";
+    } else {
+        altitudeStr = "";
+    }
+    infoBottom = joinStrings(number, altitudeStr);
 
     const char *id = doc["id"] | "";
 
