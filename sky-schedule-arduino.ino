@@ -12,10 +12,10 @@ const char *password = WIFI_PASSWORD;
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 HTTPClient http;
 
-String pathTop = "";
-String pathBottom = "";
-String infoTop = "";
-String infoBottom = "";
+String primaryTop = "";
+String primaryBottom = "";
+String secondaryTop = "";
+String secondaryBottom = "";
 
 String topText = "";
 String bottomText = "";
@@ -70,11 +70,11 @@ void loop() {
             isShowingPath = true;
             switchingEnabled = true;
 
-            if (pathTop.isEmpty() && pathBottom.isEmpty()) {
+            if (primaryTop.isEmpty() && primaryBottom.isEmpty()) {
                 isShowingPath = false;
                 switchingEnabled = false;
             }
-            if (infoTop.isEmpty() && infoBottom.isEmpty()) {
+            if (secondaryTop.isEmpty() && secondaryBottom.isEmpty()) {
                 switchingEnabled = false;
             }
 
@@ -115,9 +115,9 @@ void setTexts(String top, String bottom) {
 
 void updateTexts() {
     if (isShowingPath) {
-        setTexts(pathTop, pathBottom);
+        setTexts(primaryTop, primaryBottom);
     } else {
-        setTexts(infoTop, infoBottom);
+        setTexts(secondaryTop, secondaryBottom);
     }
 }
 
@@ -190,27 +190,10 @@ bool parseJsonResponse(String jsonResponse) {
     hasData = true;
     lcd.backlight();
 
-    const char *originCountry = doc["origin"]["country"] | "";
-    const char *originCity = doc["origin"]["city"] | "";
-    pathTop = joinStrings(originCountry, originCity);
-
-    const char *destinationCountry = doc["destination"]["country"] | "";
-    const char *destinationCity = doc["destination"]["city"] | "";
-    pathBottom = joinStrings(destinationCountry, destinationCity);
-
-    const char *aircraft = doc["aircraft"] | "";
-    const char *airline = doc["airline"] | "";
-    infoTop = joinStrings(aircraft, airline);
-
-    const char *number = doc["number"] | "";
-    const long altitude = doc["altitude"] | 0;
-    String altitudeStr;
-    if (altitude > 0) {
-        altitudeStr = String(altitude) + "m";
-    } else {
-        altitudeStr = "";
-    }
-    infoBottom = joinStrings(number, altitudeStr);
+    primaryTop = doc["primaryTop"] | "";
+    primaryBottom = doc["primaryBottom"] | "";
+    secondaryTop = doc["secondaryTop"] | "";
+    secondaryBottom = doc["secondaryBottom"] | "";
 
     const char *id = doc["id"] | "";
 
