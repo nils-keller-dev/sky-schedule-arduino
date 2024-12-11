@@ -67,8 +67,6 @@ void loop() {
         bool isNewFlight = parseJsonResponse(jsonResponse);
 
         if (isNewFlight) {
-            resetDisplay();
-
             isShowingPath = true;
             switchingEnabled = true;
 
@@ -80,25 +78,32 @@ void loop() {
                 switchingEnabled = false;
             }
 
-            // force screen update
-            lastScreenUpdateTime = 0;
+            refreshDisplay();
+        } else {
+            updateTexts();
         }
-
-        updateTexts();
 
         lastRequestTime = millis();
     }
 
-    if (hasData && millis() - lastScreenUpdateTime >= scrollDelay) {
+    if (!hasData) return;
+
+    if ((long)millis() - (long)lastScreenUpdateTime >= (long)scrollDelay) {
         updateDisplay();
         lastScreenUpdateTime = millis();
     }
 
     if (switchingEnabled && millis() - lastSwitchTime >= switchDelay) {
         isShowingPath = !isShowingPath;
-        updateTexts();
-        resetDisplay();
+        refreshDisplay();
     }
+}
+
+void refreshDisplay() {
+    resetDisplay();
+    updateTexts();
+    updateDisplay();
+    lastScreenUpdateTime = millis() + 1000;
 }
 
 void setTexts(String top, String bottom) {
