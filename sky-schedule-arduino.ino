@@ -44,22 +44,38 @@ unsigned long lastScreenUpdateTime = 0;
 const unsigned long switchDelay = 20000;  // 20 seconds
 unsigned long lastSwitchTime = 0;
 
+unsigned char loadingIndicators[4] = {'|', '/', '-', 3};
+unsigned char loading = 0;
+
+void printLoading() {
+    lcd.setCursor(2, 0);
+    lcd.print("Connecting ");
+    lcd.write(loadingIndicators[loading]);
+    loading = (loading + 1) % 4;
+}
+
 void setup() {
     Serial.begin(115200);
+
+    lcd.init();
+    lcd.createChar(3, Backslash);
+    lcd.backlight();
+    printLoading();
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
 
     while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
+        printLoading();
+        delay(150);
     }
 
-    Serial.println("");
-    Serial.println("WiFi connected");
+    lcd.setCursor(1, 1);
+    lcd.print("WiFi connected");
 
-    lcd.init();
+    delay(1500);
     lcd.clear();
+    lcd.noBacklight();
 
     lcd.createChar(0, AE);
     lcd.createChar(1, OE);
