@@ -23,12 +23,17 @@ String topScrollingText;
 String bottomScrollingText;
 int topScrollIndex = 0;
 int bottomScrollIndex = 0;
-bool isShowingPath = true;
+bool isShowingPrimary = true;
 
 String currentFlightId = "";
 bool hasData = false;
+bool isIdle = false;
 
 bool switchingEnabled = true;
+
+const unsigned long minDisplayTime = 40000;  // 40 seconds
+bool minDisplayTimeReached = false;
+unsigned long firstSuccessfulRequestTime = 0;
 
 const unsigned long requestInterval = 10000;       // 10 seconds
 unsigned long lastRequestTime = -requestInterval;  // force first request
@@ -67,11 +72,14 @@ void loop() {
         bool isNewFlight = parseJsonResponse(jsonResponse);
 
         if (isNewFlight) {
-            isShowingPath = true;
+            firstSuccessfulRequestTime = millis();
+            minDisplayTimeReached = false;
+
+            isShowingPrimary = true;
             switchingEnabled = true;
 
             if (primaryTop.isEmpty() && primaryBottom.isEmpty()) {
-                isShowingPath = false;
+                isShowingPrimary = false;
                 switchingEnabled = false;
             }
             if (secondaryTop.isEmpty() && secondaryBottom.isEmpty()) {
@@ -86,7 +94,19 @@ void loop() {
         lastRequestTime = millis();
     }
 
-    if (!hasData) return;
+    if (isIdle) return;
+
+    if (!hasData && minDisplayTimeReached) {
+        isIdle = true;
+        lcd.clear();
+        lcd.noBacklight();
+        return;
+    }
+
+    if (!minDisplayTimeReached &&
+        millis() - firstSuccessfulRequestTime >= minDisplayTime) {
+        minDisplayTimeReached = true;
+    }
 
     if ((long)millis() - (long)lastScreenUpdateTime >= (long)scrollDelay) {
         updateDisplay();
@@ -94,7 +114,7 @@ void loop() {
     }
 
     if (switchingEnabled && millis() - lastSwitchTime >= switchDelay) {
-        isShowingPath = !isShowingPath;
+        isShowingPrimary = !isShowingPrimary;
         refreshDisplay();
     }
 }
@@ -114,7 +134,7 @@ void setTexts(String top, String bottom) {
 }
 
 void updateTexts() {
-    if (isShowingPath) {
+    if (isShowingPrimary) {
         setTexts(primaryTop, primaryBottom);
     } else {
         setTexts(secondaryTop, secondaryBottom);
@@ -182,11 +202,10 @@ bool parseJsonResponse(String jsonResponse) {
     if (error || doc.isNull() || doc.size() == 0 ||
         (doc.size() == 1 && doc.containsKey("id"))) {
         hasData = false;
-        lcd.clear();
-        lcd.noBacklight();
         return false;
     }
 
+    isIdle = false;
     hasData = true;
     lcd.backlight();
 
